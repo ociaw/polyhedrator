@@ -1,0 +1,27 @@
+[package]
+name = "polyhedrator"
+version = "0.1.0"
+authors = ["Michael Johnson <michael@ociaw.com>"]
+edition = "2018"
+
+[lib]
+name = "polyhedrator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "polyhedrator-viewer"
+path = "src/main.rs"
+
+[dependencies]
+cgmath = "0.17.0"
+image = "0.23"
+winit = "0.20"
+glsl-to-spirv = "0.1" # Deprecated, but doesn't require tons of setup like shaderc
+fnv = "1.0.3"
+
+[dependencies.wgpu]
+version = "0.4"
+features = ["vulkan"]
+
+[profile.release]
+debug = true
