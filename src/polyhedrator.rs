@@ -1,12 +1,14 @@
 mod builder;
 mod keys;
+pub mod operators;
+
+pub use operators::Operator;
+pub type Vertex = Point3<f64>;
 
 use builder::Builder;
 use cgmath::{EuclideanSpace, InnerSpace, Point3, Vector3};
 use fnv::FnvHashMap;
 use keys::{FaceKey, VertexKey};
-
-pub type Vertex = Point3<f64>;
 
 #[derive(Clone, Debug)]
 pub struct Face {
@@ -64,10 +66,28 @@ impl Polyhedron {
             .map(move |index| -> Vertex { self.vertices[*index as usize] })
     }
 
-    pub fn kis(&self, sides: Option<u16>, apex_scale: Option<f64>) -> Polyhedron {
-        let apex_scale = apex_scale
-            .filter(|f| !f.is_nan() && f.is_finite())
-            .unwrap_or(0.1f64);
+    /// Applies the operator and returns the resulting polyhedron.
+    pub fn apply(self, operator: Operator) -> Polyhedron {
+        use operators::*;
+
+        match operator {
+            Operator::Ambo => self.ambo(),
+            Operator::Dual => self.dual(),
+            Operator::Kis(kis) => self.kis(kis),
+        }
+    }
+
+    /// Applies each operator in order and returns the resulting polyhedron.
+    pub fn apply_iter(self, operators: impl IntoIterator<Item = Operator>) -> Polyhedron {
+        let mut polyhedron = self;
+        for op in operators.into_iter() {
+            polyhedron = polyhedron.apply(op);
+        }
+        polyhedron
+    }
+
+    /// Applies the `kis` operator and returns the resulting polyhedron.
+    pub fn kis(self, kis: operators::Kis) -> Polyhedron {
         let mut builder = Builder::new();
 
         for i in 0..self.vertices.len() {
@@ -78,6 +98,8 @@ impl Polyhedron {
         for face_index in 0..self.faces.len() {
             let face = &self.faces[face_index];
             let face_index = face_index as u32;
+            let is_identity =
+                kis.side_count() != 0 && kis.side_count() as usize != face.indices.len();
             let mut v1_key = VertexKey::Seed(*face.indices.last().unwrap());
 
             let apex_position = {
@@ -85,12 +107,12 @@ impl Polyhedron {
                 let center = center(vertices.clone());
                 let normal = normal(vertices.clone());
                 let dist_to_center = mean_distance(vertices.clone(), center);
-                center + normal * (apex_scale * dist_to_center)
+                center + normal * (kis.apex_scale() * dist_to_center)
             };
 
             for index in &face.indices {
                 let v2_key = VertexKey::Seed(*index);
-                if sides.is_some() && face.indices.len() != sides.unwrap() as usize {
+                if is_identity {
                     builder.add_flag(FaceKey::Seed(face_index), v1_key, v2_key);
                     v1_key = v2_key;
                     continue;
@@ -110,7 +132,8 @@ impl Polyhedron {
         builder.build_polyhedron()
     }
 
-    pub fn dual(&self) -> Polyhedron {
+    /// Applies the `dual` operator and returns the resulting polyhedron.
+    pub fn dual(self) -> Polyhedron {
         let mut builder = Builder::new();
 
         let mut face_map = Vec::with_capacity(self.vertices.len());
@@ -147,7 +170,8 @@ impl Polyhedron {
         builder.build_polyhedron()
     }
 
-    pub fn ambo(&self) -> Polyhedron {
+    /// Applies the `ambo` operator and returns the resulting polyhedron.
+    pub fn ambo(self) -> Polyhedron {
         let mut builder = Builder::new();
         for i in 0..self.faces.len() {
             let face = &self.faces[i];

@@ -53,19 +53,27 @@ pub fn run() {
 }
 
 fn gen_polyhedron() -> render::Mesh {
-    use super::Polyhedron;
+    use super::operators::Kis;
+    use super::{Operator, Polyhedron};
     use render::Mesh;
     use std::iter::FromIterator;
 
     type MeshVertex = render::Vertex;
 
+    let seed = Polyhedron::regular_dodecahedron(2.0);
+    let kis = Kis::scale_apex(0.0);
+    let operations = vec![
+        Operator::Kis(kis),
+        Operator::Dual,
+        Operator::Kis(kis),
+        Operator::Dual,
+        Operator::Kis(kis),
+        Operator::Dual,
+        Operator::Kis(kis),
+        Operator::Dual,
+    ];
     let start = std::time::SystemTime::now();
-    let polyhedron = Polyhedron::regular_dodecahedron(2.0)
-        .kis(None, None)
-        .dual()
-        .kis(None, None)
-        .dual();
-
+    let polyhedron = seed.apply_iter(operations);
     let end = std::time::SystemTime::now();
     eprintln!(
         "Polyhedron generation took {} ms.",
