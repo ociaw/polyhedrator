@@ -54,13 +54,14 @@ pub fn run() {
 
 fn gen_polyhedron() -> render::Mesh {
     use super::operators::Kis;
-    use super::{Operator, Polyhedron};
+    use super::seeds::Platonic;
+    use super::Operator;
     use render::Mesh;
     use std::iter::FromIterator;
 
     type MeshVertex = render::Vertex;
 
-    let seed = Polyhedron::regular_dodecahedron(2.0);
+    let seed = Platonic::dodecahedron(2.0);
     let kis = Kis::scale_apex(0.0);
     let operations = vec![
         Operator::Kis(kis),
