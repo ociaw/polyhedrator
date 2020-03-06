@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod camera;
 mod mesh;
 mod texture;
@@ -70,7 +72,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(window: &Window, mesh: Mesh) -> Self {
+    pub fn _new(window: &Window, mesh: Mesh) -> Self {
         let size = window.inner_size();
         let surface = wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
@@ -279,7 +281,7 @@ impl State {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub fn render(&mut self) {
+    pub fn _render(&mut self) {
         let frame = self.swap_chain.get_next_texture();
         let mut encoder = self
             .device
