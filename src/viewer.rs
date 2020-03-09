@@ -14,7 +14,7 @@ use conrod_core::widget_ids;
 // Generate the winit <-> conrod_core type conversion fns.
 conrod_winit::v021_conversion_fns!();
 
-const UI_MSAA_SAMPLES: u32 = 4;
+const MSAA_SAMPLES: u32 = 4;
 const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 pub fn run() {
@@ -37,8 +37,8 @@ pub fn run() {
         present_mode: wgpu::PresentMode::Vsync,
     };
     let mut ui_swap = device.create_swap_chain(&surface, &ui_swap_desc);
-    let mut ui_renderer = conrod_wgpu::Renderer::new(&device, UI_MSAA_SAMPLES, TEXTURE_FORMAT);
-    let mut ui_framebuffer = create_multisampled_framebuffer(&device, &ui_swap_desc, UI_MSAA_SAMPLES);
+    let mut ui_renderer = conrod_wgpu::Renderer::new(&device, MSAA_SAMPLES, TEXTURE_FORMAT);
+    let mut ui_framebuffer = create_multisampled_framebuffer(&device, &ui_swap_desc, MSAA_SAMPLES);
     let mut ui = conrod_core::UiBuilder::new([size.width as f64, size.height as f64])
         .theme(theme())
         .build();
@@ -53,6 +53,8 @@ pub fn run() {
     let image_map = conrod_core::image::Map::new();
 
     let mesh = gen_polyhedron();
+    let mut state = State::new(&device, &mut queue, &ui_swap_desc, mesh);
+
     event_loop.run(move |event, _, control_flow| {
         if let Some(event) = convert_event(&event, &window) {
             ui.handle_event(event);
@@ -72,7 +74,8 @@ pub fn run() {
                     ui_swap_desc.height = new_size.height;
                     ui_swap = device.create_swap_chain(&surface, &ui_swap_desc);
                     ui_framebuffer =
-                        create_multisampled_framebuffer(&device, &ui_swap_desc, UI_MSAA_SAMPLES);
+                        create_multisampled_framebuffer(&device, &ui_swap_desc, MSAA_SAMPLES);
+                        state.resize(&device, &ui_swap_desc);
                 }
 
                 // Close on request or on Escape.
@@ -125,19 +128,23 @@ pub fn run() {
                     cmd.load_buffer_and_encode(&device, &mut encoder);
                 }
 
-                // Begin the render pass and add the draw commands.
+                // This condition allows to more easily tweak the UI_MSAA_SAMPLES constant.
+                let (attachment, resolve_target) = match MSAA_SAMPLES {
+                    1 => (&frame.view, None),
+                    _ => (&ui_framebuffer, Some(&frame.view)),
+                };
+
+                state.update(&mut encoder, &device);
+                state.render(attachment, resolve_target, &mut encoder);
+
+                // Begin the UI render pass and add the draw commands.
                 {
-                    // This condition allows to more easily tweak the UI_MSAA_SAMPLES constant.
-                    let (attachment, resolve_target) = match UI_MSAA_SAMPLES {
-                        1 => (&frame.view, None),
-                        _ => (&ui_framebuffer, Some(&frame.view)),
-                    };
                     let color_attachment_desc = wgpu::RenderPassColorAttachmentDescriptor {
                         attachment,
                         resolve_target,
-                        load_op: wgpu::LoadOp::Clear,
+                        load_op: wgpu::LoadOp::Load,
                         store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color::BLACK,
+                        clear_color: wgpu::Color::TRANSPARENT,
                     };
 
                     let render_pass_desc = wgpu::RenderPassDescriptor {
@@ -241,6 +248,7 @@ fn theme() -> conrod_core::Theme {
 
 fn gui(ui: &mut conrod_core::UiCell, ids: &Ids) {
     use conrod_core::{widget, Positionable, Sizeable, Widget};
+    use conrod_core::color::Colorable;
 
     const MARGIN: conrod_core::Scalar = 30.0;
     const SHAPE_GAP: conrod_core::Scalar = 50.0;
@@ -253,6 +261,7 @@ fn gui(ui: &mut conrod_core::UiCell, ids: &Ids) {
     const TITLE: &'static str = "All Widgets";
     widget::Canvas::new()
         .pad(MARGIN)
+        .color(conrod_core::color::TRANSPARENT)
         .set(ids.canvas, ui);
 
     ////////////////
