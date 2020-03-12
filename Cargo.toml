@@ -15,13 +15,13 @@ path = "src/main.rs"
 [dependencies]
 cgmath = "0.17.0"
 image = "0.23"
-winit = "0.21"
+winit = "0.22"
 glsl-to-spirv = "0.1" # Deprecated, but doesn't require tons of setup like shaderc
 fnv = "1.0.3"
 wgpu = "0.4"
-conrod_core = "0.69"
-conrod_wgpu = "0.69"
-conrod_winit = "0.69"
+# We'll switch to the next released version instead of pointing directly to git
+iced_wgpu = { path = '../iced/wgpu' }
+iced_winit = { path = '../iced/winit' }
 
 [profile.release]
 debug = true

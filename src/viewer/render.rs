@@ -63,10 +63,16 @@ pub struct State {
     uniform_bind_group: wgpu::BindGroup,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
+    pub background_color: wgpu::Color,
 }
 
 impl State {
-    pub fn new(device: &wgpu::Device, queue: &mut wgpu::Queue, swap_desc: &wgpu::SwapChainDescriptor, mesh: Mesh) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &mut wgpu::Queue,
+        swap_desc: &wgpu::SwapChainDescriptor,
+        mesh: Mesh,
+    ) -> Self {
         let texture_bind_group_layout = Texture::create_bind_group_layout(device);
 
         let uniform_bind_group_layout =
@@ -78,10 +84,26 @@ impl State {
                 }],
             });
 
-        let texture = Texture::load_from_file("res/texture/palette.png", device, queue, &texture_bind_group_layout).unwrap();
+        let texture = Texture::load_from_file(
+            "res/texture/palette.png",
+            device,
+            queue,
+            &texture_bind_group_layout,
+        )
+        .unwrap();
 
-        let vs_module = Shader::load_glsl_from_path("res/shader/shader.vert", glsl_to_spirv::ShaderType::Vertex, &device).unwrap();
-        let fs_module = Shader::load_glsl_from_path("res/shader/shader.frag", glsl_to_spirv::ShaderType::Fragment, &device).unwrap();
+        let vs_module = Shader::load_glsl_from_path(
+            "res/shader/shader.vert",
+            glsl_to_spirv::ShaderType::Vertex,
+            &device,
+        )
+        .unwrap();
+        let fs_module = Shader::load_glsl_from_path(
+            "res/shader/shader.frag",
+            glsl_to_spirv::ShaderType::Fragment,
+            &device,
+        )
+        .unwrap();
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -123,7 +145,7 @@ impl State {
             }),
             index_format: wgpu::IndexFormat::Uint32,
             vertex_buffers: &[Mesh::vertex_buffer_descriptor()],
-            sample_count: 4,
+            sample_count: 1,
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         };
@@ -131,7 +153,7 @@ impl State {
 
         let geometry = Geometry::from_mesh(&mesh, &device);
 
-        let mut camera = Camera::default(swap_desc.width as f32 / swap_desc.height as f32);
+        let mut camera = Camera::default(1.0);
         camera.move_eye((2.0, 0.0, 0.0).into());
 
         let camera_controller = CameraController::new(std::f32::consts::FRAC_PI_8 / 8.0);
@@ -168,6 +190,7 @@ impl State {
             uniform_bind_group,
             depth_texture,
             depth_texture_view,
+            background_color: wgpu::Color::BLACK,
         }
     }
 
@@ -193,16 +216,21 @@ impl State {
         );
     }
 
-    pub fn render<'a>(&self, attachment: &wgpu::TextureView, resolve_target: Option<&wgpu::TextureView>, encoder: &'a mut wgpu::CommandEncoder) {
+    pub fn render<'a>(
+        &self,
+        attachment: &wgpu::TextureView,
+        resolve_target: Option<&wgpu::TextureView>,
+        encoder: &'a mut wgpu::CommandEncoder,
+    ) {
         use wgpu::{LoadOp, StoreOp};
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment,
-                resolve_target: resolve_target,
-                load_op: LoadOp::Load,
+                resolve_target,
+                load_op: LoadOp::Clear,
                 store_op: StoreOp::Store,
-                clear_color: wgpu::Color::TRANSPARENT
+                clear_color: self.background_color,
             }],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
                 attachment: &self.depth_texture_view,

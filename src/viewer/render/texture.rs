@@ -5,29 +5,35 @@ pub struct Texture {
     diffuse_bind_group: wgpu::BindGroup,
 }
 
-pub static BIND_GROUP_LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor = wgpu::BindGroupLayoutDescriptor {
-    bindings: &[
-        wgpu::BindGroupLayoutBinding {
-            binding: 0,
-            visibility: wgpu::ShaderStage::FRAGMENT,
-            ty: wgpu::BindingType::SampledTexture {
-                multisampled: false,
-                dimension: wgpu::TextureViewDimension::D2,
+pub static BIND_GROUP_LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor =
+    wgpu::BindGroupLayoutDescriptor {
+        bindings: &[
+            wgpu::BindGroupLayoutBinding {
+                binding: 0,
+                visibility: wgpu::ShaderStage::FRAGMENT,
+                ty: wgpu::BindingType::SampledTexture {
+                    multisampled: false,
+                    dimension: wgpu::TextureViewDimension::D2,
+                },
             },
-        },
-        wgpu::BindGroupLayoutBinding {
-            binding: 1,
-            visibility: wgpu::ShaderStage::FRAGMENT,
-            ty: wgpu::BindingType::Sampler,
-        },
-    ],
-};
+            wgpu::BindGroupLayoutBinding {
+                binding: 1,
+                visibility: wgpu::ShaderStage::FRAGMENT,
+                ty: wgpu::BindingType::Sampler,
+            },
+        ],
+    };
 
 impl Texture {
-    pub fn load_from_file<P: AsRef<std::path::Path>>(path: P, device: &wgpu::Device, queue: &mut wgpu::Queue, layout: &wgpu::BindGroupLayout) -> Result<Texture, image::error::ImageError> {
+    pub fn load_from_file<P: AsRef<std::path::Path>>(
+        path: P,
+        device: &wgpu::Device,
+        queue: &mut wgpu::Queue,
+        layout: &wgpu::BindGroupLayout,
+    ) -> Result<Texture, image::error::ImageError> {
         let bytes = match std::fs::read(path) {
             Ok(bytes) => bytes,
-            Err(e) => return Err(image::error::ImageError::IoError(e))
+            Err(e) => return Err(image::error::ImageError::IoError(e)),
         };
         Self::from_buffer(device, queue, layout, &bytes)
     }
@@ -42,14 +48,12 @@ impl Texture {
         let diffuse_image = image::load_from_memory(bytes)?;
         let diffuse_rgba = match diffuse_image.as_rgba8() {
             Some(image) => image,
-            None => return Err(
-                ImageError::Decoding(
-                    DecodingError::new(
-                        ImageFormatHint::Name("RGBA8".to_owned()),
-                        "Textures must be in RGBA8 format (32-bit).".to_owned(),
-                    )
-                )       
-            )
+            None => {
+                return Err(ImageError::Decoding(DecodingError::new(
+                    ImageFormatHint::Name("RGBA8".to_owned()),
+                    "Textures must be in RGBA8 format (32-bit).".to_owned(),
+                )))
+            }
         };
 
         let dimensions = diffuse_rgba.dimensions();
