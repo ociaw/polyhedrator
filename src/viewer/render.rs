@@ -5,6 +5,7 @@ mod mesh;
 mod shader;
 mod texture;
 mod uniforms;
+mod update;
 
 use camera::Camera;
 use camera::CameraController;
@@ -13,6 +14,7 @@ use texture::Texture;
 use uniforms::Uniforms;
 
 pub use mesh::{Mesh, Vertex};
+pub use update::Update;
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
@@ -63,7 +65,6 @@ pub struct State {
     uniform_bind_group: wgpu::BindGroup,
     depth_texture: wgpu::Texture,
     depth_texture_view: wgpu::TextureView,
-    pub background_color: wgpu::Color,
 }
 
 impl State {
@@ -153,7 +154,7 @@ impl State {
 
         let geometry = Geometry::from_mesh(&mesh, &device);
 
-        let mut camera = Camera::default(1.0);
+        let mut camera = Camera::default(swap_desc.width as f32 / swap_desc.height as f32);
         camera.move_eye((2.0, 0.0, 0.0).into());
 
         let camera_controller = CameraController::new(std::f32::consts::FRAC_PI_8 / 8.0);
@@ -190,13 +191,18 @@ impl State {
             uniform_bind_group,
             depth_texture,
             depth_texture_view,
-            background_color: wgpu::Color::BLACK,
         }
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor) {
-        self.depth_texture = create_depth_texture(&device, sc_desc);
-        self.depth_texture_view = self.depth_texture.create_default_view();
+    pub fn apply_update(&mut self, device: &wgpu::Device, update: update::Update) {
+        if let Some(new_mesh) = update.mesh {
+            self.geometry = Geometry::from_mesh(&new_mesh, device);
+        }
+        if let Some(swap_desc) = update.swap_desc {
+            self.depth_texture = create_depth_texture(&device, swap_desc);
+            self.depth_texture_view = self.depth_texture.create_default_view();
+            self.camera.set_aspect_ratio(swap_desc.width as f32 / swap_desc.height as f32);
+        }
     }
 
     pub fn update(&mut self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device) {
@@ -230,7 +236,7 @@ impl State {
                 resolve_target,
                 load_op: LoadOp::Clear,
                 store_op: StoreOp::Store,
-                clear_color: self.background_color,
+                clear_color: wgpu::Color::WHITE,
             }],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
                 attachment: &self.depth_texture_view,

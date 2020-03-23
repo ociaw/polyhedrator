@@ -1,91 +1,83 @@
 use iced_wgpu::Renderer;
-use iced_winit::{slider, Align, Column, Element, Length, Row, Slider, Text};
-use wgpu::Color;
+use iced_winit::{button, text_input, Align, Button, Column, Element, Length, Radio, Row, Text, TextInput};
+use crate::seeds::{Seed, Platonic};
+use crate::{operators, Operator};
+use super::generator::Generator;
 
 pub struct Controls {
-    sliders: [slider::State; 3],
+    seed: Seed,
+    operations: Vec<Operator>,
+    notation_input: text_input::State,
+    update_button: button::State,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Message {
-    BackgroundColorChanged(Color),
+    SeedSelected(Seed),
+    NotationChanged(String),
+    UpdatePressed,
 }
 
 impl Controls {
     pub fn new() -> Controls {
+        let kis = operators::Kis::scale_apex(0.0);
+        let operations = vec![
+            Operator::Kis(kis),
+            Operator::Dual,
+            Operator::Kis(kis),
+            Operator::Dual,
+            Operator::Kis(kis),
+            Operator::Dual,
+            Operator::Kis(kis),
+            Operator::Dual,
+        ];
         Controls {
-            sliders: Default::default(),
+            seed: Seed::Platonic(Platonic::Dodecahedron),
+            operations,
+            notation_input: text_input::State::focused(),
+            update_button: Default::default(),
         }
     }
 
-    pub fn update(&self, message: Message, state: &mut super::State) {
+    pub fn update(&mut self, message: Message, state: &mut super::State, device: &wgpu::Device) {
         match message {
-            Message::BackgroundColorChanged(color) => state.background_color = color,
+            Message::SeedSelected(seed) => self.seed = seed,
+            Message::UpdatePressed => {
+                let mut generator = Generator::seed(self.seed.polyhedron(2.0));
+                generator.apply_iter(self.operations.iter().cloned());
+                let update = super::render::Update {
+                    mesh: Some(generator.to_mesh()), .. Default::default()
+                };
+                state.apply_update(device, update);
+            },
+            Message::NotationChanged(_notation) => (),
         }
     }
 
-    pub fn view(&mut self, state: &super::State) -> Element<Message, Renderer> {
-        let [r, g, b] = &mut self.sliders;
-        let background_color = state.background_color;
+    pub fn view(&mut self) -> Element<Message, Renderer> {
+        let mut seed_column = Column::new().width(Length::Units(170)).spacing(10)
+            .push(Text::new("Seed"));
+        for seed in Platonic::all().iter().cloned().map(|p| Seed::Platonic(p)) {
+            let radio = Radio::new(seed, &seed.to_string(), Some(self.seed), Message::SeedSelected);
+            seed_column = seed_column.push(radio);
+        }
+        seed_column = seed_column.push(Button::new(&mut self.update_button, Text::new("Update"))
+            .on_press(Message::UpdatePressed));
 
-        let sliders = Row::new()
-            .width(Length::Units(500))
-            .spacing(20)
-            .push(Slider::new(
-                r,
-                0.0..=1.0,
-                state.background_color.r as f32,
-                move |r| {
-                    Message::BackgroundColorChanged(Color {
-                        r: r as f64,
-                        ..background_color
-                    })
-                },
-            ))
-            .push(Slider::new(
-                g,
-                0.0..=1.0,
-                state.background_color.g as f32,
-                move |g| {
-                    Message::BackgroundColorChanged(Color {
-                        g: g as f64,
-                        ..background_color
-                    })
-                },
-            ))
-            .push(Slider::new(
-                b,
-                0.0..=1.0,
-                state.background_color.b as f32,
-                move |b| {
-                    Message::BackgroundColorChanged(Color {
-                        b: b as f64,
-                        ..background_color
-                    })
-                },
-            ));
+        let notation_text = self.operations.iter().rev().fold(String::with_capacity(self.operations.len()), |mut notation, op| -> String {
+            let str: String = (*op).into();
+            notation.push_str(&str);
+            notation
+        });
+
+        let notation_element = TextInput::new(&mut self.notation_input, "e.g. dkdkdk", &notation_text, |text| Message::NotationChanged(text.to_owned()));
 
         Row::new()
             .width(Length::Fill)
             .height(Length::Fill)
             .align_items(Align::End)
-            .push(
-                Column::new()
-                    .width(Length::Fill)
-                    .align_items(Align::End)
-                    .push(
-                        Column::new()
-                            .padding(10)
-                            .spacing(10)
-                            .push(Text::new("Background color").color(iced_winit::Color::WHITE))
-                            .push(sliders)
-                            .push(
-                                Text::new(format!("{:?}", background_color))
-                                    .size(14)
-                                    .color(iced_winit::Color::WHITE),
-                            ),
-                    ),
-            )
+            .push(seed_column)
+            .push(notation_element)
             .into()
     }
 }

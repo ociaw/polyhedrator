@@ -1,10 +1,28 @@
 /// A Conway operator to apply to a polyhedron.
 /// See [https://en.wikipedia.org/wiki/Conway_polyhedron_notation](Conway polyhedron notation) for
 /// more information.
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum Operator {
     Ambo,
     Dual,
     Kis(Kis),
+}
+
+impl From<Operator> for String {
+    fn from(operator: Operator) -> Self {
+        match operator {
+            Operator::Ambo => "a".into(),
+            Operator::Dual => "d".into(),
+            Operator::Kis(kis) => {
+                if kis.side_count == 0 {
+                    "k".into()
+                }
+                else {
+                    format!("k{}", kis.side_count)
+                }
+            },
+        }
+    }
 }
 
 /// The `kis` operator (short for triakis, also known as [Kleetope](https://en.wikipedia.org/wiki/Kleetope))

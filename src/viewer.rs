@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 mod controls;
+mod generator;
 mod render;
 
 use render::State;
@@ -120,7 +121,7 @@ pub fn run() {
 
                 // First, we build our user interface.
                 let mut user_interface = UserInterface::build(
-                    controls.view(&state),
+                    controls.view(),
                     Size::new(logical_size.width, logical_size.height),
                     cache.take().unwrap(),
                     &mut renderer,
@@ -148,13 +149,13 @@ pub fn run() {
                     // about messages, so updating our state is pretty
                     // straightforward.
                     for message in messages {
-                        controls.update(message, &mut state);
+                        controls.update(message, &mut state, &device);
                     }
 
                     // Once the state has been changed, we rebuild our updated
                     // user interface.
                     UserInterface::build(
-                        controls.view(&state),
+                        controls.view(),
                         Size::new(logical_size.width, logical_size.height),
                         cache.take().unwrap(),
                         &mut renderer,
@@ -183,7 +184,10 @@ pub fn run() {
                         height: size.height,
                         present_mode: wgpu::PresentMode::Vsync,
                     };
-                    state.resize(&device, &ui_swap_desc);
+                    state.apply_update(&device, render::Update {
+                        swap_desc: Some(&ui_swap_desc),
+                        .. Default::default()
+                    });
                     resized = false;
                 }
 
@@ -246,8 +250,7 @@ fn gen_polyhedron() -> render::Mesh {
     use super::operators::Kis;
     use super::seeds::Platonic;
     use super::Operator;
-    use render::Mesh;
-    use std::iter::FromIterator;
+    use generator::Generator;
 
     type MeshVertex = render::Vertex;
 
@@ -264,60 +267,13 @@ fn gen_polyhedron() -> render::Mesh {
         Operator::Dual,
     ];
     let start = std::time::SystemTime::now();
-    let polyhedron = seed.apply_iter(operations);
+    let mut generator = Generator::seed(seed);
+    generator.apply_iter(operations);
     let end = std::time::SystemTime::now();
     eprintln!(
         "Polyhedron generation took {} ms.",
         end.duration_since(start).unwrap().as_millis()
     );
 
-    let faces = polyhedron.faces();
-    let classes = polyhedron.classify_faces();
-
-    let mesh = Mesh::from_vertex_groups(faces.iter().enumerate().map(
-        |(i, face)| -> Vec<MeshVertex> {
-            let class = classes[i];
-            let coord_x = ((class % 8) as f32 + 0.5) / 8.0;
-            let coord_y = ((class / 8) as f32 + 0.5) as f32 / 8.0;
-
-            let vertices = polyhedron.face_vertices(face);
-            let normal = normal(vertices.clone()).cast::<f32>().unwrap();
-
-            Vec::from_iter(vertices.map(|vertex| -> MeshVertex {
-                MeshVertex::new(vertex.cast::<f32>().unwrap(), [coord_x, coord_y], normal)
-            }))
-        },
-    ));
-
-    eprintln!(
-        "faces: {}, triangles: {}, verts: {}",
-        faces.len(),
-        mesh.triangles().len(),
-        mesh.vertices().len()
-    );
-    mesh
-}
-
-fn normal(mut vertices: impl Iterator<Item = polyhedrator::Vertex>) -> cgmath::Vector3<f64> {
-    use cgmath::{EuclideanSpace, InnerSpace, Point3, Vector3};
-
-    // Using a vertex near the polygon reduces error for polygons far from the origin
-    let origin = Point3::origin();
-    let first = vertices.next().unwrap_or(origin);
-    let normalizer = first;
-
-    let mut normal = Vector3 {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-    };
-    let mut previous = first - normalizer;
-    for vertex in vertices {
-        let current = vertex - normalizer;
-        normal += previous.cross(current);
-        previous = current;
-    }
-    normal += previous.cross(first - normalizer);
-
-    normal.normalize()
+    generator.to_mesh()
 }
