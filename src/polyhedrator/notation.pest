@@ -1,0 +1,7 @@
+operator = _{ ambo | dual | kis }
+	ambo = { "a" }
+    dual = { "d" }
+    kis = { "k" ~ parameter? }
+parameter = { (ASCII_DIGIT)+ }
+
+expression = { (operator)+? }

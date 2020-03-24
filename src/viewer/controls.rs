@@ -44,13 +44,17 @@ impl Controls {
             Message::SeedSelected(seed) => self.seed = seed,
             Message::UpdatePressed => {
                 let mut generator = Generator::seed(self.seed.polyhedron(2.0));
-                generator.apply_iter(self.operations.iter().cloned());
+                generator.apply_iter(self.operations.iter().rev().cloned());
                 let update = super::render::Update {
                     mesh: Some(generator.to_mesh()), .. Default::default()
                 };
                 state.apply_update(device, update);
             },
-            Message::NotationChanged(_notation) => (),
+            Message::NotationChanged(notation) => {
+                if let Ok(operations) = Operator::try_parse(&notation) {
+                    self.operations = operations;
+                }
+            },
         }
     }
 
@@ -64,7 +68,7 @@ impl Controls {
         seed_column = seed_column.push(Button::new(&mut self.update_button, Text::new("Update"))
             .on_press(Message::UpdatePressed));
 
-        let notation_text = self.operations.iter().rev().fold(String::with_capacity(self.operations.len()), |mut notation, op| -> String {
+        let notation_text = self.operations.iter().fold(String::with_capacity(self.operations.len()), |mut notation, op| -> String {
             let str: String = (*op).into();
             notation.push_str(&str);
             notation

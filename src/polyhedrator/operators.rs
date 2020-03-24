@@ -89,3 +89,43 @@ impl Default for Kis {
         }
     }
 }
+
+use pest_derive::Parser;
+#[derive(Parser)]
+#[grammar = "polyhedrator/notation.pest"]
+struct NotationParser;
+
+impl Operator {
+    pub fn try_parse(value: &str) -> Result<Vec<Operator>, ()> {
+        use pest::Parser;
+
+        match NotationParser::parse(Rule::expression, value) {
+            Ok(pairs) => {
+                let mut operators = Vec::new();
+                for expression_pair in pairs {
+                    for operator_pair in expression_pair.into_inner() {
+                        let operator = match operator_pair.as_rule() {
+                            Rule::ambo => Operator::Ambo,
+                            Rule::dual => Operator::Dual,
+                            Rule::kis => {
+                                let parameter_pair = operator_pair.into_inner().next();
+                                if let Some(parameter_pair) = parameter_pair {
+                                    assert_eq!(parameter_pair.as_rule(), Rule::parameter);
+                                    let sides = parameter_pair.as_str().parse::<u32>().unwrap();
+                                    Operator::Kis(Kis::restrict_to_sides_and_scale_apex(sides, 0.0))
+                                }
+                                else {
+                                    Operator::Kis(Kis::scale_apex(0.0))
+                                }
+                            },
+                            _ => unreachable!(),
+                        };
+                        operators.push(operator);
+                    }
+                }
+                Ok(operators)
+            },
+            Err(_) => Err(())
+        }
+    }
+}
