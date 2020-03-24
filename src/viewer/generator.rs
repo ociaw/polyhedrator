@@ -28,6 +28,11 @@ impl Generator {
         std::mem::replace(&mut self.polyhedron, polyhedron);
     }
 
+    pub fn scale(&mut self, max_radius: f64) {
+        self.polyhedron.center_on_origin();
+        self.polyhedron.scale(max_radius);
+    }
+
     pub fn to_mesh(&self) -> render::Mesh {
         use std::iter::FromIterator;
         use render::Mesh;

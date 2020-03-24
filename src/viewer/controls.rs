@@ -45,6 +45,7 @@ impl Controls {
             Message::UpdatePressed => {
                 let mut generator = Generator::seed(self.seed.polyhedron(2.0));
                 generator.apply_iter(self.operations.iter().rev().cloned());
+                generator.scale(2.0);
                 let update = super::render::Update {
                     mesh: Some(generator.to_mesh()), .. Default::default()
                 };
