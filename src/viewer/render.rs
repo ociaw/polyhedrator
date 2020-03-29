@@ -152,8 +152,6 @@ impl State {
         };
         let render_pipeline = device.create_render_pipeline(&pipeline_descriptor);
 
-        let geometry = Geometry::from_mesh(&mesh, &device);
-
         let mut camera = Camera::default(swap_desc.width as f32 / swap_desc.height as f32);
         camera.move_eye((2.0, 0.0, 0.0).into());
 
@@ -182,7 +180,7 @@ impl State {
 
         Self {
             render_pipeline,
-            geometry,
+            geometry: Geometry::from_mesh(&mesh, &device),
             texture,
             camera,
             camera_controller,

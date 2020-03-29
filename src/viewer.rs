@@ -19,7 +19,7 @@ const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 pub fn run() {
     let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window = WindowBuilder::new().with_title("Polyhedrator").build(&event_loop).unwrap();
     let mut size = window.inner_size();
     let mut logical_size = size.to_logical(window.scale_factor());
     let mut modifiers = event::ModifiersState::default();
@@ -56,6 +56,7 @@ pub fn run() {
 
     let mesh = gen_polyhedron();
     let mut state = State::new(&device, &mut queue, &ui_swap_desc, mesh);
+    controls.update(controls::Message::UpdatePressed, &mut state, &device);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = if cfg!(feature = "metal-auto-capture") {
@@ -209,7 +210,7 @@ pub fn run() {
                     },
                     &output,
                     window.scale_factor(),
-                    &["Some debug information!"],
+                    &[""],
                 );
 
                 queue.submit(&[encoder.finish()]);
@@ -247,33 +248,13 @@ fn create_multisampled_framebuffer(
 }
 
 fn gen_polyhedron() -> render::Mesh {
-    use super::operators::Kis;
     use super::seeds::Platonic;
-    use super::Operator;
     use generator::Generator;
 
     type MeshVertex = render::Vertex;
 
     let seed = Platonic::dodecahedron(2.0);
-    let kis = Kis::scale_apex(0.0);
-    let operations = vec![
-        Operator::Kis(kis),
-        Operator::Dual,
-        Operator::Kis(kis),
-        Operator::Dual,
-        Operator::Kis(kis),
-        Operator::Dual,
-        Operator::Kis(kis),
-        Operator::Dual,
-    ];
-    let start = std::time::SystemTime::now();
-    let mut generator = Generator::seed(seed);
-    generator.apply_iter(operations);
-    let end = std::time::SystemTime::now();
-    eprintln!(
-        "Polyhedron generation took {} ms.",
-        end.duration_since(start).unwrap().as_millis()
-    );
+    let generator = Generator::seed(seed);
 
     generator.to_mesh()
 }

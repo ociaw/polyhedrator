@@ -22,7 +22,6 @@ impl Controls {
     pub fn new() -> Controls {
         let kis = operators::Kis::scale_apex(0.0);
         let operations = vec![
-            Operator::Kis(kis),
             Operator::Dual,
             Operator::Kis(kis),
             Operator::Dual,
@@ -30,6 +29,7 @@ impl Controls {
             Operator::Dual,
             Operator::Kis(kis),
             Operator::Dual,
+            Operator::Kis(kis),
         ];
         Controls {
             seed: Seed::Platonic(Platonic::Dodecahedron),
@@ -66,8 +66,6 @@ impl Controls {
             let radio = Radio::new(seed, &seed.to_string(), Some(self.seed), Message::SeedSelected);
             seed_column = seed_column.push(radio);
         }
-        seed_column = seed_column.push(Button::new(&mut self.update_button, Text::new("Update"))
-            .on_press(Message::UpdatePressed));
 
         let notation_text = self.operations.iter().fold(String::with_capacity(self.operations.len()), |mut notation, op| -> String {
             let str: String = (*op).into();
@@ -77,12 +75,17 @@ impl Controls {
 
         let notation_element = TextInput::new(&mut self.notation_input, "e.g. dkdkdk", &notation_text, |text| Message::NotationChanged(text.to_owned()));
 
+        seed_column = seed_column
+            .push(Text::new("Operations"))
+            .push(notation_element)
+            .push(Button::new(&mut self.update_button, Text::new("Update"))
+                .on_press(Message::UpdatePressed));
+
         Row::new()
             .width(Length::Fill)
             .height(Length::Fill)
             .align_items(Align::End)
             .push(seed_column)
-            .push(notation_element)
             .into()
     }
 }
