@@ -21,9 +21,16 @@ winit = "0.22"
 glsl-to-spirv = "0.1" # Deprecated, but doesn't require tons of setup like shaderc
 fnv = "1.0.3"
 wgpu = "0.4"
+
 # We'll switch to the next released version instead of pointing directly to git
-iced_wgpu = { path = '../iced/wgpu' }
-iced_winit = { path = '../iced/winit' }
+[dependencies.iced_wgpu]
+package = "iced_wgpu"
+git = "https://github.com/hecrj/iced"
+rev = "3f785472c4c43faf16e8e611bd0cec06ab1f9da9"
+[dependencies.iced_winit]
+package = "iced_winit"
+git = "https://github.com/hecrj/iced"
+rev = "3f785472c4c43faf16e8e611bd0cec06ab1f9da9"
 
 [profile.release]
 debug = true
