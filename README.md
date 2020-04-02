@@ -2,6 +2,8 @@
 Polyhedrator is a polyhedron generator and viewer. It uses [Conway Polyhedron Notation](https://en.wikipedia.org/wiki/Conway_polyhedron_notation)
 to represent transformations on polyhedrons.
 
+![Screenshot of a polyhedron with formula dkdkdkdkdkdkdkdI](https://ociaw.com/assets/img/polyhedrator-dkdkdkdkdkdkdkdI-375504d281db.png)
+
 Polyhedrons can be seeded from the 5 Platonic solids:
 * Tetrahedron
 * Cube
