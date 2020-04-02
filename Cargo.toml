@@ -14,14 +14,23 @@ path = "src/main.rs"
 
 [dependencies]
 cgmath = "0.17.0"
+pest = "2.1.3"
+pest_derive = "2.1.0"
 image = "0.23"
-winit = "0.20"
+winit = "0.22"
 glsl-to-spirv = "0.1" # Deprecated, but doesn't require tons of setup like shaderc
 fnv = "1.0.3"
+wgpu = "0.4"
 
-[dependencies.wgpu]
-version = "0.4"
-features = ["vulkan"]
+# We'll switch to the next released version instead of pointing directly to git
+[dependencies.iced_wgpu]
+package = "iced_wgpu"
+git = "https://github.com/hecrj/iced"
+rev = "3f785472c4c43faf16e8e611bd0cec06ab1f9da9"
+[dependencies.iced_winit]
+package = "iced_winit"
+git = "https://github.com/hecrj/iced"
+rev = "3f785472c4c43faf16e8e611bd0cec06ab1f9da9"
 
 [profile.release]
 debug = true

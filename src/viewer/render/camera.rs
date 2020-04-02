@@ -69,6 +69,10 @@ impl Camera {
         self.eye_unit_vector = vector.normalize();
     }
 
+    pub fn set_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.aspect_ratio = aspect_ratio;
+    }
+
     pub fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
         let eye = self.target + self.eye_unit_vector * self.magnitude;
         let view = cgmath::Matrix4::look_at(eye, self.target, self.up);
@@ -79,7 +83,7 @@ impl Camera {
             self.far_depth,
         );
 
-        OPENGL_TO_WGPU_MATRIX * proj * view
+        proj * view
     }
 }
 

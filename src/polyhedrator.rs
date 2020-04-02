@@ -67,6 +67,37 @@ impl Polyhedron {
             .map(move |index| -> Vertex { self.vertices[*index as usize] })
     }
 
+    pub fn center_on_origin(&mut self) {
+        let mut center = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
+        for vert in self.vertices.iter() {
+            center += vert.to_vec();
+        }
+
+        for vert in self.vertices.iter_mut() {
+            *vert = *vert - center;
+        }
+        eprintln!("Recentered with adjustment of {:?}", center);
+    }
+
+    pub fn scale(&mut self, max_radius: f64) {
+        let mut furthest = Point3::origin();
+        let mut furthest_mag = 0.0;
+        for vert in self.vertices.iter() {
+            let mag = vert.to_vec().magnitude2();
+            if mag > furthest_mag {
+                furthest = *vert;
+                furthest_mag = mag;
+            }
+        }
+
+        let scale = max_radius / furthest.to_vec().magnitude();
+
+        for vert in self.vertices.iter_mut() {
+            *vert = *vert * scale;
+        }
+        eprintln!("Scaled {}", scale);
+    }
+
     /// Applies the operator and returns the resulting polyhedron.
     pub fn apply(self, operator: Operator) -> Polyhedron {
         use operators::*;

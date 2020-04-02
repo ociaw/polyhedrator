@@ -1,12 +1,39 @@
 use super::{Face, Polyhedron};
 
-pub struct Platonic {}
+#[derive(Copy, Clone, Debug, Hash, Eq, Ord, PartialOrd, PartialEq)]
+pub enum Platonic {
+    Tetrahedron,
+    Cube,
+    Octahedron,
+    Dodecahedron,
+    Icosahedron,
+}
 
 fn golden_ratio() -> f64 {
     (1.0 + 5.0f64.sqrt()) / 2.0
 }
 
 impl Platonic {
+    pub fn all() -> [Platonic; 5] {
+        [
+            Platonic::Tetrahedron,
+            Platonic::Cube,
+            Platonic::Octahedron,
+            Platonic::Dodecahedron,
+            Platonic::Icosahedron,
+        ]
+    }
+
+    pub fn polyhedron(self, edge_length: f64) -> Polyhedron {
+        match self {
+            Platonic::Tetrahedron => Self::tetrahedron(edge_length),
+            Platonic::Cube => Self::cube(edge_length),
+            Platonic::Octahedron => Self::octahedron(edge_length),
+            Platonic::Dodecahedron => Self::dodecahedron(edge_length),
+            Platonic::Icosahedron => Self::icosahedron(edge_length),
+        }
+    }
+
     pub fn tetrahedron(edge_length: f64) -> Polyhedron {
         let scalar = edge_length / 2.0;
         let sqrt = std::f64::consts::FRAC_1_SQRT_2 * scalar;
@@ -265,5 +292,29 @@ impl Platonic {
                 },
             ],
         }
+    }
+}
+
+impl From<Platonic> for &str {
+    fn from(platonic: Platonic) -> &'static str {
+        match platonic {
+            Platonic::Tetrahedron => "T",
+            Platonic::Cube => "C",
+            Platonic::Octahedron => "O",
+            Platonic::Dodecahedron => "D",
+            Platonic::Icosahedron => "I",
+        }
+    }
+}
+
+impl std::fmt::Display for Platonic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Platonic::Tetrahedron => "Tetrahedron",
+            Platonic::Cube => "Cube",
+            Platonic::Octahedron => "Octahedron",
+            Platonic::Dodecahedron => "Dodecahedron",
+            Platonic::Icosahedron => "Icosahedron",
+        })
     }
 }

@@ -17,15 +17,15 @@ uniform Uniforms {
 };
 
 void main() {
-    float ambient_intensity = 0.25;
+    float ambient_intensity = 0.15;
     vec3 ambient_color = vec3(1.0, 1.0, 1.0);
     vec3 ambient = ambient_intensity * ambient_color;
 
     vec3 normal = normalize(v_normal);
 
-    float sun_intensity = 0.75;
+    float sun_intensity = 0.85;
     vec3 sun_direction = normalize(u_light_pos.xyz - v_frag_pos);
-    float sun_light = max(dot(normal, sun_direction), 0.0);
+    float sun_light = (dot(normal, sun_direction) + 1.0) / 2.0;
     vec3 sun_diffuse = sun_intensity * sun_light * vec3(1.0, 1.0, 1.0);
 
     vec3 lighting = (ambient + sun_diffuse) * u_light_color.xyz;

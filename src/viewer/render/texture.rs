@@ -5,18 +5,58 @@ pub struct Texture {
     diffuse_bind_group: wgpu::BindGroup,
 }
 
+pub static BIND_GROUP_LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor =
+    wgpu::BindGroupLayoutDescriptor {
+        bindings: &[
+            wgpu::BindGroupLayoutBinding {
+                binding: 0,
+                visibility: wgpu::ShaderStage::FRAGMENT,
+                ty: wgpu::BindingType::SampledTexture {
+                    multisampled: false,
+                    dimension: wgpu::TextureViewDimension::D2,
+                },
+            },
+            wgpu::BindGroupLayoutBinding {
+                binding: 1,
+                visibility: wgpu::ShaderStage::FRAGMENT,
+                ty: wgpu::BindingType::Sampler,
+            },
+        ],
+    };
+
 impl Texture {
+    pub fn load_from_file<P: AsRef<std::path::Path>>(
+        path: P,
+        device: &wgpu::Device,
+        queue: &mut wgpu::Queue,
+        layout: &wgpu::BindGroupLayout,
+    ) -> Result<Texture, image::error::ImageError> {
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(image::error::ImageError::IoError(e)),
+        };
+        Self::from_buffer(device, queue, layout, &bytes)
+    }
+
     pub fn from_buffer(
         device: &wgpu::Device,
         queue: &mut wgpu::Queue,
         layout: &wgpu::BindGroupLayout,
         bytes: &[u8],
-    ) -> Texture {
-        let diffuse_image = image::load_from_memory(bytes).unwrap();
-        let diffuse_rgba = diffuse_image.as_rgba8().unwrap();
+    ) -> Result<Texture, image::error::ImageError> {
+        use image::error::{DecodingError, ImageError, ImageFormatHint};
+        let diffuse_image = image::load_from_memory(bytes)?;
+        let diffuse_rgba = match diffuse_image.as_rgba8() {
+            Some(image) => image,
+            None => {
+                return Err(ImageError::Decoding(DecodingError::new(
+                    ImageFormatHint::Name("RGBA8".to_owned()),
+                    "Textures must be in RGBA8 format (32-bit).".to_owned(),
+                )))
+            }
+        };
 
-        use image::GenericImageView;
-        let dimensions = diffuse_image.dimensions();
+        let dimensions = diffuse_rgba.dimensions();
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
@@ -82,12 +122,16 @@ impl Texture {
             ],
         });
 
-        Texture {
+        Ok(Texture {
             _diffuse_texture: diffuse_texture,
             _diffuse_texture_view: diffuse_texture_view,
             _diffuse_sampler: diffuse_sampler,
             diffuse_bind_group,
-        }
+        })
+    }
+
+    pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&BIND_GROUP_LAYOUT_DESCRIPTOR)
     }
 
     pub fn bind_group(&self) -> &wgpu::BindGroup {
