@@ -103,7 +103,7 @@ pub fn run() {
 
                 // Map window event to iced event
                 if let Some(event) =
-                    iced_winit::conversion::window_event(event, window.scale_factor(), modifiers)
+                    iced_winit::conversion::window_event(&event, window.scale_factor(), modifiers)
                 {
                     events.push(event);
                 }
