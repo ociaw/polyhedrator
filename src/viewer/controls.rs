@@ -62,7 +62,7 @@ impl Controls {
     pub fn view(&mut self) -> Element<Message, Renderer> {
         let mut seed_column = Column::new().width(Length::Units(170)).spacing(10)
             .push(Text::new("Seed"));
-        for seed in Platonic::all().iter().cloned().map(|p| Seed::Platonic(p)) {
+        for seed in Platonic::all().iter().cloned().map(Seed::Platonic) {
             let radio = Radio::new(seed, &seed.to_string(), Some(self.seed), Message::SeedSelected);
             seed_column = seed_column.push(radio);
         }
@@ -73,7 +73,7 @@ impl Controls {
             notation
         });
 
-        let notation_element = TextInput::new(&mut self.notation_input, "e.g. dkdkdk", &notation_text, |text| Message::NotationChanged(text.to_owned()));
+        let notation_element = TextInput::new(&mut self.notation_input, "e.g. dkdkdk", &notation_text, Message::NotationChanged);
 
         seed_column = seed_column
             .push(Text::new("Operations"))

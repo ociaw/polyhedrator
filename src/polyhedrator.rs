@@ -74,7 +74,7 @@ impl Polyhedron {
         }
 
         for vert in self.vertices.iter_mut() {
-            *vert = *vert - center;
+            *vert -= center;
         }
         eprintln!("Recentered with adjustment of {:?}", center);
     }
@@ -93,7 +93,7 @@ impl Polyhedron {
         let scale = max_radius / furthest.to_vec().magnitude();
 
         for vert in self.vertices.iter_mut() {
-            *vert = *vert * scale;
+            *vert *= scale;
         }
         eprintln!("Scaled {}", scale);
     }
